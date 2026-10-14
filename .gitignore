@@ -3,10 +3,11 @@ node_modules/
 coverage/
 *-coverage/
 .nyc_output/
-dist/
+coverage/
+*-coverage/
+.nyc_output/
 build/
 umd/
-*/**/dist/
 
 typedoc/
 
@@ -39,7 +40,20 @@ npm-debug.log
 !.yarn/sdks
 !.yarn/versions
 
+# Netlify環境変数から生成されるファイル
+examples/demo-app/dist/env-config.js
+
 # Local Netlify folder
 .netlify
 meta.json
 .env
+tool-header-project-api.md
+QUICKSTART.md
+PROJECT_JSON_SCHEMA.md
+PROJECT_ID_FLOW.md
+LARGE_UPLOAD_PLAN.md
+KEPLER_GL_PERMALINK_TROUBLESHOOTING.md
+KEPLER_GL_API_MIGRATION.md
+_documents/KEPLER_LARGE_UPLOAD_SPEC.md
+KEPLER_LARGE_UPLOAD_SPEC.md
+supabase/.temp/

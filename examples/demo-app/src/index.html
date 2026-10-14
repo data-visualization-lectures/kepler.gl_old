@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主題地図ツール kepler.gl</title>
+  <script>
+    (function () {
+      var isPublicShare = /^\/shares\/[^/]+\/?$/.test(window.location.pathname);
+      if (isPublicShare) {
+        window.DATAVIZ_HEADER_CONFIG = { mode: 'public' };
+        document.documentElement.classList.add('public-share-route');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/bundle.css">
+  <style>
+    :root {
+      --dataviz-tool-header-background: #2b2b2b;
+      /* Shared global header (about 48px) + tool header (about 56px). */
+      --dataviz-app-top-offset: 104px;
+    }
+
+    html {
+      background: var(--dataviz-tool-header-background);
+      height: 100%;
+      /* clip is not a scroll container, so focusing a menu cannot scroll the page. */
+      overflow: clip;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: clip;
+      background: var(--dataviz-tool-header-background);
+      font-family: sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--dataviz-app-top-offset);
+      background: var(--dataviz-tool-header-background);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    #root {
+      position: fixed;
+      top: var(--dataviz-app-top-offset);
+      right: 0;
+      bottom: 0;
+      left: 0;
+      overflow: clip;
+    }
+
+    dataviz-tool-header {
+      display: block !important;
+      position: fixed !important;
+      top: 48px !important;
+      left: 0 !important;
+      width: 100% !important;
+      background: var(--dataviz-tool-header-background) !important;
+      z-index: 9999 !important;
+    }
+
+    dataviz-tool-header::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -6px;
+      /* Overlap the header by 1px to cover its light bottom border. */
+      height: 7px;
+      background: var(--dataviz-tool-header-background);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    html.public-share-route dataviz-header,
+    html.public-share-route dataviz-tool-header {
+      display: none !important;
+    }
+
+    html.public-share-route #root {
+      top: 0 !important;
+    }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MED0DK8N23"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-MED0DK8N23');
+  </script>
+</head>
+
+<body>
+  <dataviz-header></dataviz-header>
+  <dataviz-tool-header></dataviz-tool-header>
+  <div id="root"></div>
+  <script>
+    (function () {
+      function pin(el) {
+        if (!el) return;
+        if (el.scrollTop) el.scrollTop = 0;
+        if (el.scrollLeft) el.scrollLeft = 0;
+      }
+      document.addEventListener('scroll', function (event) {
+        var target = event.target;
+        if (target === document || target === document.documentElement || target === document.body) {
+          window.scrollTo(0, 0);
+          return;
+        }
+        if (target && target.id === 'root') pin(target);
+      }, true);
+    })();
+  </script>
+  <script src="https://app.dataviz.jp/lib/supabase.js"></script>
+  <script src="https://app.dataviz.jp/lib/dataviz-auth-client.js"></script>
+  <script src="https://id.data-viz-lectures.com/lib/dataviz-tool-header.js" defer></script>
+  <script src="/env-config.js"></script>
+  <script src="/bundle.js"></script>
+</body>
+
+</html>

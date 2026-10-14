@@ -85,6 +85,9 @@ export function setLoadingMapStatus(isMapLoading) {
  */
 export function onExportFileSuccess({provider, options}) {
   return dispatch => {
+    if (options.isPublic && provider?.name === 'dataviz') {
+      return;
+    }
     // if isPublic is true, use share Url
     if (options.isPublic && provider.getShareUrl) {
       dispatch(push(provider.getShareUrl(false)));
@@ -97,6 +100,18 @@ export function onExportFileSuccess({provider, options}) {
 
 export function onLoadCloudMapSuccess({provider, loadParams}) {
   return dispatch => {
+    console.log('[onLoadCloudMapSuccess] Called with provider:', provider?.name, 'loadParams:', loadParams);
+    // dataviz プロバイダーは /projects/{projectId} 形式のパーマリンクを使う
+    if (provider?.name === 'dataviz') {
+      const projectId = loadParams?.id;
+      console.log('[onLoadCloudMapSuccess] dataviz provider, projectId:', projectId);
+      if (projectId) {
+        // URL を /projects/{projectId} 形式で更新（パーマリンク形式）
+        dispatch(push(`/projects/${projectId}`));
+        console.log('[onLoadCloudMapSuccess] Updated URL to permalink:', `/projects/${projectId}`);
+      }
+      return;
+    }
     const mapUrl = provider?.getMapUrl(loadParams);
     if (mapUrl) {
       const url = `/demo/map/${provider.name}?path=${mapUrl}`;

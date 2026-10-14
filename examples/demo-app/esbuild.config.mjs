@@ -2,16 +2,20 @@
 // Copyright contributors to the kepler.gl project
 
 import esbuild from 'esbuild';
-import {replace} from 'esbuild-plugin-replace';
-import {dotenvRun} from '@dotenv-run/esbuild';
+import { replace } from 'esbuild-plugin-replace';
+import { dotenvRun } from '@dotenv-run/esbuild';
 
 import process from 'node:process';
 import fs from 'node:fs';
-import {spawn} from 'node:child_process';
-import {join} from 'node:path';
-import KeplerPackage from '../../package.json' assert {type: 'json'};
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const KeplerPackage = require('../../package.json');
+const {RESOLVE_ALIASES} = require('../../webpack/shared-webpack-configuration');
 
 const args = process.argv;
+const isProductionBuild = args.includes('--build');
 
 const BASE_NODE_MODULES_DIR = './node_modules';
 
@@ -35,9 +39,9 @@ const getThirdPartyLibraryAliases = useKeplerNodeModules => {
 
   const localSources = useKeplerNodeModules
     ? {
-        // Suppress useless warnings from react-date-picker's dep
-        'tiny-warning': `${SRC_DIR}/utils/src/noop.ts`
-      }
+      // Suppress useless warnings from react-date-picker's dep
+      'tiny-warning': `${SRC_DIR}/utils/src/noop.ts`
+    }
     : {};
 
   return {
@@ -88,13 +92,25 @@ const config = {
     '.css': 'css',
     '.ttf': 'file',
     '.woff': 'file',
-    '.woff2': 'file'
+    '.woff2': 'file',
+    '.png': 'file'
   },
   entryPoints: ['src/main.js'],
   outfile: 'dist/bundle.js',
   bundle: true,
   define: {
-    NODE_ENV
+    NODE_ENV,
+    // ビルドモードではトークンを空にする（Netlifyのenv-config.jsから実行時に注入）
+    // 開発モードではローカルの.envから読み込む
+    'process.env.MapboxAccessToken': JSON.stringify(isProductionBuild ? '' : (process.env.MapboxAccessToken || '')),
+    'process.env.MapboxExportToken': JSON.stringify(isProductionBuild ? '' : (process.env.MapboxExportToken || '')),
+    'process.env.DropboxClientId': JSON.stringify(isProductionBuild ? '' : (process.env.DropboxClientId || '')),
+    'process.env.CartoClientId': JSON.stringify(isProductionBuild ? '' : (process.env.CartoClientId || '')),
+    'process.env.FoursquareClientId': JSON.stringify(isProductionBuild ? '' : (process.env.FoursquareClientId || '')),
+    'process.env.FoursquareDomain': JSON.stringify(isProductionBuild ? '' : (process.env.FoursquareDomain || '')),
+    'process.env.FoursquareAPIURL': JSON.stringify(isProductionBuild ? '' : (process.env.FoursquareAPIURL || '')),
+    'process.env.FoursquareUserMapsURL': JSON.stringify(isProductionBuild ? '' : (process.env.FoursquareUserMapsURL || '')),
+    'process.env.NODE_ENV': NODE_ENV
   },
   plugins: [
     dotenvRun({
@@ -106,7 +122,46 @@ const config = {
     replace({
       __PACKAGE_VERSION__: KeplerPackage.version,
       include: /constants\/src\/default-settings\.ts/
-    })
+    }),
+    {
+      name: 'react-virtualized-patch',
+      setup(build) {
+        build.onLoad(
+          {
+            filter:
+              /react-virtualized\/dist\/es\/WindowScroller\/utils\/onScroll\.js$/
+          },
+          async args => {
+            const text = await fs.promises.readFile(args.path, 'utf8');
+            return {
+              contents: text.replace(
+                'import { bpfrpt_proptype_WindowScroller } from "../WindowScroller.js";',
+                ''
+              ),
+              loader: 'js'
+            };
+          }
+        );
+      }
+    },
+    {
+      name: 'copy-assets',
+      setup(build) {
+        build.onEnd(() => {
+          const srcAssets = 'src/assets';
+          const distAssets = 'dist/assets';
+          if (fs.existsSync(srcAssets)) {
+            if (!fs.existsSync(distAssets)) {
+              fs.mkdirSync(distAssets, { recursive: true });
+            }
+            fs.readdirSync(srcAssets).forEach(file => {
+              fs.copyFileSync(join(srcAssets, file), join(distAssets, file));
+            });
+            console.log('✅ Assets copied to dist/assets');
+          }
+        });
+      }
+    }
   ]
 };
 
@@ -145,6 +200,7 @@ function addAliases(externals, args) {
     resolveAlias['@openassistant/osm'] = join(LIB_DIR, '../openassistant/packages/tools/osm/src');
     resolveAlias['@openassistant/utils'] = join(LIB_DIR, '../openassistant/packages/utils/src');
     resolveAlias['@kepler.gl/ai-assistant'] = join(SRC_DIR, 'ai-assistant/src');
+    resolveAlias['@kepler.gl/localization'] = join(SRC_DIR, 'localization/src');
   }
 
   // resolve deck.gl from local dir
@@ -173,8 +229,8 @@ function addAliases(externals, args) {
       resolveAlias[name] = useLocalDeck
         ? `${NODE_MODULES_DIR}/${name}/src`
         : name === 'probe.gl'
-        ? `${EXTERNAL_DECK_SRC}/node_modules/${name}/src`
-        : `${EXTERNAL_DECK_SRC}/node_modules/@${name}/core/src`;
+          ? `${EXTERNAL_DECK_SRC}/node_modules/${name}/src`
+          : `${EXTERNAL_DECK_SRC}/node_modules/@${name}/core/src`;
 
       // if env.deck Load @${name} modules from root node_modules/@${name}
       // if env.deck_src Load @${name} modules from deck.gl/node_modules/@${name} folder parallel to kepler.gl`
@@ -255,14 +311,16 @@ function openURL(url) {
         sourcemap: false,
         // Add alias resolution for build
         alias: {
-          ...getThirdPartyLibraryAliases(true)
+          ...getThirdPartyLibraryAliases(true),
+          // Ship this fork's source, not the published npm packages.
+          ...RESOLVE_ALIASES
         },
         // Add these production optimizations
         define: {
           ...config.define,
           'process.env.NODE_ENV': '"production"'
         },
-        drop: ['console', 'debugger'],
+        // drop: ['console', 'debugger'],  // Temporarily disabled for debugging
         treeShaking: true,
         metafile: true,
         // Optionally generate a bundle analysis
@@ -298,8 +356,8 @@ function openURL(url) {
         sourcemap: true,
         // add alias to resolve libraries so there is only one copy of them
         ...(process.env.NODE_ENV === 'local'
-          ? {alias: localAliases}
-          : {alias: getThirdPartyLibraryAliases(false)}),
+          ? { alias: {...RESOLVE_ALIASES, ...localAliases} }
+          : { alias: getThirdPartyLibraryAliases(false) }),
         banner: {
           js: `new EventSource('/esbuild').addEventListener('change', () => location.reload());`
         }
@@ -312,7 +370,7 @@ function openURL(url) {
           servedir: 'dist',
           port,
           fallback: 'dist/index.html',
-          onRequest: ({remoteAddress, method, path, status, timeInMS}) => {
+          onRequest: ({ remoteAddress, method, path, status, timeInMS }) => {
             console.info(remoteAddress, status, `"${method} ${path}" [${timeInMS}ms]`);
           }
         });

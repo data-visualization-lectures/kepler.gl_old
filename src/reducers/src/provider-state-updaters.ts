@@ -8,7 +8,6 @@ import {generateHashId, toArray} from '@kepler.gl/common-utils';
 import {
   EXPORT_FILE_TO_CLOUD_TASK,
   ACTION_TASK,
-  DELAY_TASK,
   LOAD_CLOUD_MAP_TASK
 } from '@kepler.gl/tasks';
 import {
@@ -19,15 +18,11 @@ import {
   loadCloudMapSuccess2,
   loadCloudMapError,
   resetProviderStatus,
-  removeNotification,
   toggleModal,
-  addNotification,
   addDataToMap,
   ProviderActions
 } from '@kepler.gl/actions';
 import {
-  DEFAULT_NOTIFICATION_TYPES,
-  DEFAULT_NOTIFICATION_TOPICS,
   DATASET_FORMATS,
   OVERWRITE_MAP_ID
 } from '@kepler.gl/constants';
@@ -96,15 +91,20 @@ function createGlobalNotificationTasks({
   message: string;
   delayClose?: boolean;
 }) {
-  const id = generateHashId();
-  const successNote = {
-    id,
-    type: DEFAULT_NOTIFICATION_TYPES[type || ''] || DEFAULT_NOTIFICATION_TYPES.success,
-    topic: DEFAULT_NOTIFICATION_TOPICS.global,
-    message
-  };
-  const task = ACTION_TASK().map(() => addNotification(successNote));
-  return delayClose ? [task, DELAY_TASK(3000).map(() => removeNotification(id))] : [task];
+  // Dispatch a custom event to notify dataviz-tool-header toast UI.
+  // Using window event + setTimeout to decouple from Redux dispatch cycle.
+  const toastType = type === 'error' ? 'error' : 'success';
+  const duration = delayClose ? 3000 : undefined;
+  if (typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent('kepler-notification', {
+          detail: {message, type: toastType, duration}
+        })
+      );
+    }, 0);
+  }
+  return [];
 }
 
 /**
@@ -154,10 +154,10 @@ export const exportFileSuccessUpdater = (
     isProviderLoading: false,
     // TODO: do we always have to store this?
     successInfo: response,
+    savedMapId: response?.info?.id ?? response?.project?.id ?? response?.sourceProjectId ?? response?.id ?? null,
     ...(!options.isPublic
       ? {
-          mapSaved: provider.name,
-          savedMapId: response?.info?.id ?? null
+          mapSaved: provider.name
         }
       : {})
   };
@@ -165,7 +165,7 @@ export const exportFileSuccessUpdater = (
   const tasks = [
     createActionTask(onSuccess, {response, provider, options}),
     closeModal &&
-      ACTION_TASK().map(() => postSaveLoadSuccess(`Map saved to ${state.currentProvider}!`))
+      ACTION_TASK().map(() => postSaveLoadSuccess('プロジェクトを保存しました'))
   ].filter(d => d);
 
   return tasks.length ? withTask(newState, tasks) : newState;
@@ -178,7 +178,7 @@ export const postSaveLoadSuccessUpdater = (
   state: ProviderState,
   action: ActionPayload<ProviderActions.PostSaveLoadSuccessPayload>
 ): ProviderState => {
-  const message = action.payload || `Saved / Load to ${state.currentProvider} Success`;
+  const message = action.payload || 'プロジェクトの保存・読込が完了しました';
 
   const tasks = [
     ACTION_TASK().map(() => toggleModal(null)),
@@ -406,7 +406,7 @@ export const loadCloudMapSuccess2Updater = (
   const tasks = [
     ACTION_TASK().map(() => addDataToMap(datasetsPayload)),
     createActionTask(onSuccess, {response, loadParams, provider}),
-    ACTION_TASK().map(() => postSaveLoadSuccess(`Map from ${provider.name} loaded`))
+    ACTION_TASK().map(() => postSaveLoadSuccess('プロジェクトを読み込みました'))
   ].filter(d => d);
 
   return tasks.length ? withTask(newState, tasks) : newState;
@@ -416,7 +416,7 @@ export const loadCloudMapErrorUpdater = (
   state: ProviderState,
   action: ActionPayload<ProviderActions.LoadCloudMapErrorPayload>
 ): ProviderState => {
-  const message = getError(action.payload.error) || `Error loading saved map`;
+  const message = getError(action.payload.error) || 'プロジェクトの読み込みに失敗しました';
 
   Console.warn(message);
 

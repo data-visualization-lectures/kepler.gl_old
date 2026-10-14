@@ -76,6 +76,16 @@ export default {
   },
   layer: {
     required: 'Required*',
+    customInput: 'custom input',
+    columnMode: {
+      pointColumns: 'Point Columns',
+      geojsonFeature: 'GeoJSON Feature',
+      geoarrowPoints: 'Geoarrow Points',
+      points: 'Points',
+      pointAndNeighbors: 'Point and Neighbors',
+      geojson: 'GeoJSON',
+      tableColumns: 'Table columns'
+    },
     columnModesSeparator: 'Or',
     radius: 'Radius',
     color: 'Color',
@@ -215,7 +225,8 @@ export default {
   },
   datasetTitle: {
     showDataTable: 'Show data table',
-    removeDataset: 'Remove dataset'
+    removeDataset: 'Remove dataset',
+    datasets: 'Datasets'
   },
   datasetInfo: {
     rowCount: '{rowCount} rows',
@@ -306,6 +317,8 @@ export default {
       download: 'Download',
       export: 'Export',
       addStyle: 'Add Style',
+      copy: 'Copy',
+      copied: 'Copied!',
       save: 'Save',
       defaultCancel: 'Cancel',
       defaultConfirm: 'Confirm'
@@ -320,7 +333,25 @@ export default {
       resolutionTitle: 'Resolution',
       resolutionDescription: 'High resolution is better for prints.',
       mapLegendTitle: 'Map Legend',
-      mapLegendAdd: 'Add legend on map'
+      mapLegendAdd: 'Add legend on map',
+      formatTitle: 'Format',
+      formatDescription: 'SVG keeps shapes as editable vectors.',
+      svgSplitUnsupported: 'SVG is not available in split map view.',
+      svgLayersTitle: 'Layers',
+      svgLayersDescription: 'Each layer becomes a separate group in the SVG.',
+      svgModeVector: 'Vector',
+      svgModeRaster: 'Image (transparent PNG)',
+      svgModeUnsupported: 'Not supported in SVG',
+      svgUnsupportedReason: 'Aggregated, 3D, icon, trip and tile layers cannot be exported as SVG.',
+      svgHeavyWarning:
+        'About {count} vector shapes. The file may be heavy to open in other applications.',
+      svgBasemapTitle: 'Base Map',
+      svgBasemapDescription: 'The base map is embedded as an image in its own group.',
+      svgBasemapNone: 'Exclude',
+      svgBasemapRaster: 'Include as image',
+      svgZipTitle: 'PNG Files',
+      svgZipAdd: 'Also export image parts as PNG files (ZIP)',
+      svgZipDescription: 'Bundles the SVG with base map and heatmap PNGs into one ZIP file.'
     },
     exportData: {
       datasetTitle: 'Dataset',
@@ -361,13 +392,14 @@ export default {
     },
     shareMap: {
       title: 'Share Map',
-      shareUriTitle: 'Share Map Url',
+      shareUriTitle: 'Share URL',
+      generatedUrlTitle: 'Share URL',
       shareUriSubtitle: 'Generate a map url to share with others',
       cloudTitle: 'Cloud storage',
       cloudSubtitle: 'Login and upload map data to your personal cloud storage',
       shareDisclaimer:
-        'kepler.gl will save your map data to your personal cloud storage, only people with the URL can access your map and data. ' +
-        'You can edit/delete the data file in your cloud account anytime.',
+        'With kepler.gl on Data Toolbox, you can publish a URL that anyone can access for your created data map. ' +
+        'When sharing, the latest state is saved before publication.',
       gotoPage: 'Go to your Kepler.gl {currentProvider} page'
     },
     statusPanel: {
@@ -589,18 +621,38 @@ ${'```'}
     customPalette: 'Custom Palette',
     steps: 'Steps',
     type: 'Type',
+    sequential: 'Sequential',
+    qualitative: 'Qualitative',
+    diverging: 'Diverging',
+    cyclical: 'Cyclical',
+    all: 'All',
     colorBlindSafe: 'Colorblind Safe',
     reversed: 'Reversed',
     disableStepReason: `Can't change number of steps with custom color breaks, use custom palette to edit steps`,
     preset: 'Preset Colors',
     picker: 'Color Picker'
   },
+  columnStats: {
+    min: 'Min',
+    mean: 'Mean',
+    max: 'Max'
+  },
   scale: {
     colorScale: 'Color Scale',
     sizeScale: 'Size Scale',
     strokeScale: 'Stroke Scale',
     strokeColorScale: 'Stroke Color Scale',
-    scale: 'Scale'
+    scale: 'Scale',
+    ordinal: 'Ordinal',
+    quantile: 'Quantile',
+    quantize: 'Quantize',
+    linear: 'Linear',
+    sqrt: 'Sqrt',
+    log: 'Log',
+    point: 'Point',
+    threshold: 'Threshold',
+    custom: 'Custom Breaks',
+    customOrdinal: 'Custom Ordinal'
   },
   fileUploader: {
     message: 'Drag & Drop Your File(s) Here',
@@ -619,6 +671,33 @@ ${'```'}
   tilesetSetup: {
     header: 'Setup Vector Tiles',
     rasterTileHeader: 'Setup Raster Tiles',
+    type: 'Tileset Type',
+    vectorTile: 'Vector Tile',
+    rasterTile: 'Raster Tile',
+    wms: 'WMS',
+    name: 'Name',
+    namePlaceholder: 'Name your tileset',
+    url: 'Tileset URL',
+    metadataUrl: 'Tileset metadata URL',
+    metadataPlaceholder: 'Tileset metadata',
+    vectorDescription: 'Requires {x}, {y}, {z} placeholders in URL or .pmtiles extension.',
+    metadataDescription: 'Optional, but recommended. Supports json, txt',
+    metadataLoadingFailed: 'Metadata loading failed: {status} {statusText}',
+    useRasterForm: 'For .pmtiles in raster format, please use the Raster Tile form.',
+    useVectorForm: 'For .pmtiles in mvt format, please use the Vector Tile form.',
+    invalidRasterServers: 'Provide valid raster tile server urls to support STAC and elevations.',
+    rasterDocumentation: 'Open Raster Tile Layer documentation',
+    rasterDescription: 'Supports raster .pmtiles. Limited support for STAC Items and Collections.',
+    rasterServers: 'Raster tile servers',
+    rasterServersPlaceholder: 'Raster tile servers (separated by commas)',
+    rasterServersDescription:
+      'Raster tile server URLs for Cloud Optimized GeoTIFF tilesets and elevation.',
+    wmsNamePlaceholder: 'Name your WMS layer',
+    wmsUrl: 'WMS URL',
+    wmsUrlPlaceholder: 'Enter WMS URL',
+    wmsDescription: 'Provide a valid WMS service URL.',
+    wmsExamples: 'For example, try a public WMS URL:',
+    unknownError: 'Unknown error',
     addTilesetText: 'Add Tileset'
   },
   geocoder: {
@@ -626,7 +705,25 @@ ${'```'}
   },
   fieldSelector: {
     clearAll: 'Clear All',
-    formatting: 'Formatting'
+    formatting: 'Formatting',
+    suggested: 'Suggested Field'
+  },
+  dataTable: {
+    integerFormat: '# Set Integer Number Format',
+    floatFormat: '# Set Float Number Format',
+    timestampFormat: '# Set Timestamp Format',
+    dateFormat: '# Set Date Format',
+    booleanFormat: '# Set Boolean Format',
+    sortAsc: 'Sort Ascending',
+    sortDesc: 'Sort Descending',
+    unsort: 'Unsort Column',
+    pin: 'Pin Column',
+    unpin: 'Unpin Column',
+    copy: 'Copy Column',
+    formatColumn: 'Format Column',
+    showColumnStats: 'Show Column Stats',
+    hideColumnStats: 'Hide Column Stats',
+    formatNone: 'None'
   },
   compare: {
     modeLabel: 'Comparison Mode',
@@ -644,6 +741,7 @@ ${'```'}
   'User Guide': 'User Guide',
   Save: 'Save',
   Share: 'Share',
+  'Update color': 'Update color',
   mapLegend: {
     layers: {
       line: {

@@ -1,10 +1,25 @@
 [build]
-# demo-app をローカルでビルドした成果物だけを配置する前提
 base = "examples/demo-app"
 publish = "dist"
-command = "echo 'Use local build: netlify deploy --dir=examples/demo-app/dist'"
+command = """
+cat > dist/env-config.js << ENVEOF
+window.__ENV__ = {
+  MapboxAccessToken: "$MapboxAccessToken",
+  MapboxExportToken: "$MapboxExportToken"
+};
+ENVEOF
+"""
+
+[build.environment]
+  YARN_ENABLE_SCRIPTS = "false"
 
 # Netlify 側でのビルド／依存インストールは行わないため、環境変数指定は不要
+
+[[redirects]]
+  from = "/api/dataviz/*"
+  to = "https://api.dataviz.jp/api/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
 from = "/*"

@@ -1,11 +1,13 @@
+# kepler.gl（dataviz.jp フォーク）
+
+Dataviz Cloud の保存・公開シェア（`publish-kepler-gl-share`、公開 URL は `/shares/:id`）は [DATAVIZ.md](./DATAVIZ.md)。上流の Dropbox 手順だけを正にしないこと。
 
 ## 手順
 
 0. Node を 20 に切り替え（nvm を使う場合）
 
 ```
-nvm install 20
-nvm use 20
+nvm install 20 & nvm use 20
 ```
 
 1. Yarn 4 を有効化（1回だけでOK）
@@ -18,14 +20,18 @@ corepack prepare yarn@4.4.0 --activate
 
 ```
 corepack yarn install
+
+cd examples/demo-app
+corepack yarn install
 ```
 
 3. デモアプリをローカル起動（Mapbox等の環境変数を .env に入れてから）
 
 ```
-cd examples/demo-app
 NODE_OPTIONS=--openssl-legacy-provider corepack yarn start:local
 ```
+
+http://localhost:8080/?auth_debug
 
 4. ローカルビルド（成果物は examples/demo-app/dist/）
 
